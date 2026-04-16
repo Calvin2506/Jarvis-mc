@@ -11,6 +11,7 @@ def main():
             break
         add_message("user", user_input)
         response = process_command(user_input)
+        add_message("assistant", response)
         print(f"Jarvis:{response}")
 
 

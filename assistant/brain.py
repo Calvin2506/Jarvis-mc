@@ -10,8 +10,9 @@ from assistant.commands import (
     show_history,
     tell_date,
     tell_time,
-    unknown_command,
 )
+from assistant.history import get_recent_history
+from assistant.llm import ask_llm
 
 
 def process_command(command: str) -> str:
@@ -46,5 +47,11 @@ def process_command(command: str) -> str:
         return get_name()
     if lowered_command == "show history":
         return show_history()
-
-    return unknown_command()
+    history = get_recent_history()
+    if (
+        history
+        and history[-1].get("role") == "user"
+        and history[-1].get("message") == cleaned_command
+    ):
+        history = history[:-1]
+    return ask_llm(cleaned_command, history)

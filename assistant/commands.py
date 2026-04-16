@@ -74,7 +74,8 @@ def create_note(note_text: str) -> str:
 def save_name(name: str) -> str:
     if not name:
         return "You need to tell me your name."
-        remember("user_name", name)
+
+    remember("user_name", name)
     return f"I will remember that your name is {name}."
 
 
