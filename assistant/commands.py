@@ -43,7 +43,7 @@ def open_website(url: str) -> str:
         return "You need to provide a website."
 
     if not url.startswith(("http://", "https://")):
-        url = f"https://{url}"
+        url = f"https://{url}.com"
 
     webbrowser.open(url)
     return f"Opening {url}."
