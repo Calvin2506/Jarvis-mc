@@ -2,11 +2,27 @@ import subprocess
 import webbrowser
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from assistant.history import get_recent_history
 from assistant.memory import recall, remember
 
 NOTES_DIR = Path("notes")
+
+
+def normalize_website(url: str) -> str:
+    url = url.strip()
+
+    if not url:
+        return url
+
+    if url.startswith(("http://", "https://")):
+        return url
+
+    if "." not in url:
+        url = f"{url}.com"
+
+    return f"https://{url}"
 
 
 def tell_time() -> str:
@@ -24,32 +40,33 @@ def say_hello() -> str:
 
 
 def repeat_text(text: str) -> str:
+    text = text.strip()
     if not text:
         return "You need to give me something to repeat."
     return text
 
 
 def search_topic(topic: str) -> str:
+    topic = topic.strip()
     if not topic:
         return "You need to tell me what to search for."
-    query = topic.replace(" ", "+")
+    query = quote_plus(topic)
     url = f"https://www.google.com/search?q={query}"
     webbrowser.open(url)
     return f"Searching the web for {topic}."
 
 
 def open_website(url: str) -> str:
+    url = normalize_website(url)
     if not url:
         return "You need to provide a website."
-
-    if not url.startswith(("http://", "https://")):
-        url = f"https://{url}.com"
 
     webbrowser.open(url)
     return f"Opening {url}."
 
 
 def open_app(app_name: str) -> str:
+    app_name = app_name.strip()
     if not app_name:
         return "You need to tell me which app to open."
     try:
@@ -60,6 +77,7 @@ def open_app(app_name: str) -> str:
 
 
 def create_note(note_text: str) -> str:
+    note_text = note_text.strip()
     if not note_text:
         return "You need to tell me what to write in the note."
 
@@ -72,6 +90,7 @@ def create_note(note_text: str) -> str:
 
 
 def save_name(name: str) -> str:
+    name = name.strip()
     if not name:
         return "You need to tell me your name."
 

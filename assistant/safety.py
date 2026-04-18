@@ -22,7 +22,7 @@ def get_policy(action_name: str) -> str:
 
 
 def requires_confirmation(action_name: str) -> bool:
-    return get_policy(action_name) == BLOCKED
+    return get_policy(action_name) == CONFIRM
 
 
 def is_blocked(action_name: str) -> bool:

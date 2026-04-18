@@ -19,9 +19,9 @@ def listen() -> str:
             recognizer.adjust_for_ambient_noise(source, duration=1)
             audio = recognizer.listen(source)
     except OSError:
-        return "Microphone not available."
+        return "Microphone is not available."
     try:
-        return recognizer.recognize_google(audio)
+        return recognizer.recognize_google(audio)  # type:ignore[attr-defined]
     except sr.UnknownValueError:
         return ""
     except sr.RequestError:

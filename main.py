@@ -1,4 +1,5 @@
 from assistant.brain import route_command
+from assistant.errors import normalize_response, safe_execute
 from assistant.history import add_message
 from assistant.safety import is_blocked, requires_confirmation
 from assistant.voice import listen, speak
@@ -40,11 +41,10 @@ def get_user_input(mode: str, failed_listens: int) -> tuple[str, str, int]:
     return user_input.strip(), mode, 0
 
 
-def confirm_action(command: str, mode: str) -> bool:
-    prompt = f"Jarvis: This action needs confirmation: '{command}'. Proceed? (yes/no)"
+def confirm_action(prompt: str, mode: str) -> bool:
     if mode == "voice":
-        speak("This action needs confirmation. Proceed?")
-    answer = input(prompt).strip().lower()
+        speak(prompt)
+    answer = input(f"Jarvis: {prompt} (yes/no): ").strip().lower()
     return answer in {"yes", "y"}
 
 
@@ -63,15 +63,25 @@ def main():
             if mode == "voice":
                 speak(response)
             break
-        action_name, action = route_command(user_input)
-        if is_blocked(action_name):
+        command_data = route_command(user_input)
+        action_name = command_data["action_name"]
+        action = command_data["action"]
+        validator = command_data["validator"]
+        confirm_message = command_data["confirm_message"]
+        validation_error = validator()
+        if validation_error:
+            response = normalize_response(validation_error)
+        elif is_blocked(action_name):
             response = "This action is blocked for safety."
-        elif requires_confirmation(action_name) and not confirm_action(
-            user_input, mode
-        ):
-            response = "Action cancelled by user."
+        elif requires_confirmation(action_name):
+            prompt = confirm_message or f"Do you want me to run '{user_input}'?"
+            if not confirm_action(prompt, mode):
+                response = "Action cancelled by user."
+            else:
+                response = safe_execute(action)
         else:
-            response = action()
+            response = safe_execute(action)
+        response = normalize_response(response)
         add_message("user", user_input)
         add_message("assistant", response)
         print(f"Jarvis: {response}")

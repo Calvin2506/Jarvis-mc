@@ -67,8 +67,16 @@ def ask_llm(user_message: str, history: list[dict]) -> str:
         )
         response.raise_for_status()
         data = response.json()
-        return data["message"]["content"].strip()
+        message = data.get("message", {})
+        content = message.get("content")
+
+        if not isinstance(content, str) or not content.strip():
+            return "I could not generate a response from Ollama."
+
+        return content.strip()
+    except requests.Timeout:
+        return "Ollama took too long to respond."
     except requests.RequestException:
         return "I could not connect to your local Ollama server."
-    except (KeyError, TypeError):
+    except (AttributeError, TypeError, ValueError):
         return "Ollama returned an unexpected response."
