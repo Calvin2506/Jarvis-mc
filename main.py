@@ -51,7 +51,11 @@ def confirm_action(prompt: str, mode: str) -> bool:
 def main():
     print("Jarvis is online.")
     print("Type 'voice' anytime in text mode to switch back to voice mode.")
-    mode = input("Choose mode (text/voice): ").strip().lower()
+    while True:
+        mode = input("Choose mode (text/voice): ").strip().lower()
+        if mode in {"text", "voice"}:
+            break
+        print("Please choose either 'text' or 'voice'.")
     failed_listens = 0
     while True:
         user_input, mode, failed_listens = get_user_input(mode, failed_listens)
@@ -59,7 +63,7 @@ def main():
             continue
         if user_input.lower() == "exit":
             response = "Jarvis is shutting down."
-            print(f"Jarvis:{response}")
+            print(f"Jarvis: {response}")
             if mode == "voice":
                 speak(response)
             break
@@ -68,6 +72,7 @@ def main():
         action = command_data["action"]
         validator = command_data["validator"]
         confirm_message = command_data["confirm_message"]
+        should_save = False
         validation_error = validator()
         if validation_error:
             response = normalize_response(validation_error)
@@ -79,12 +84,15 @@ def main():
                 response = "Action cancelled by user."
             else:
                 response = safe_execute(action)
+                should_save = True
         else:
             response = safe_execute(action)
+            should_save = True
         response = normalize_response(response)
-        add_message("user", user_input)
-        add_message("assistant", response)
-        print(f"Jarvis: {response}")
+        if should_save:
+            add_message("user", user_input)
+            add_message("assistant", response)
+            print(f"Jarvis: {response}")
         if mode == "voice":
             speak(response)
 

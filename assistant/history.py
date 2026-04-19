@@ -1,5 +1,8 @@
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 HISTORY_FILE = Path("history.json")
 MAX_HISTORY_ITEMS = 20
@@ -17,8 +20,11 @@ def load_history() -> list:
 
 
 def save_history(history: list) -> None:
-    with HISTORY_FILE.open("w", encoding="utf-8") as file:
-        json.dump(history, file, indent=2)
+    try:
+        with HISTORY_FILE.open("w", encoding="utf-8") as file:
+            json.dump(history, file, indent=2)
+    except OSError:
+        logger.warning("Unexpected error while saving history")
 
 
 def add_message(role: str, message: str) -> None:

@@ -43,7 +43,7 @@ def route_command(command: str) -> dict:
     cleaned_command = command.strip()
     lowered_command = cleaned_command.lower()
 
-    if lowered_command in {"hello", "hi"}:
+    if lowered_command in {"hello", "hi", "hey"}:
         return make_command("say_hello", lambda: say_hello())
 
     if "time" in lowered_command:
@@ -107,12 +107,5 @@ def route_command(command: str) -> dict:
         return make_command("show_history", lambda: show_history())
 
     history = get_recent_history()
-
-    if (
-        history
-        and history[-1].get("role") == "user"
-        and history[-1].get("message") == cleaned_command
-    ):
-        history = history[:-1]
 
     return make_command("ask_llm", lambda: ask_llm(cleaned_command, history))

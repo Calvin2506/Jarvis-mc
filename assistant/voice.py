@@ -1,12 +1,28 @@
-import pyttsx3
-import speech_recognition as sr
+import logging
 
-engine = pyttsx3.init()
+import pyttsx3
+import specch_recognition as sr
+
+logger = logging.getLogger(__name__)
+_engine = None
 recognizer = sr.Recognizer()
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        try:
+            _engine = pyttsx3.init()
+        except Exception:
+            logger.error("TTS engine could not be initialized")
+    return _engine
 
 
 def speak(text: str) -> None:
     if not text:
+        return
+    engine = _get_engine()
+    if engine is None:
         return
     engine.say(text)
     engine.runAndWait()
@@ -21,7 +37,7 @@ def listen() -> str:
     except OSError:
         return "Microphone is not available."
     try:
-        return recognizer.recognize_google(audio)  # type:ignore[attr-defined]
+        return recognizer.recognize_whisper(audio, model="base")
     except sr.UnknownValueError:
         return ""
     except sr.RequestError:
