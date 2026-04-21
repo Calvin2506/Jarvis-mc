@@ -1,11 +1,11 @@
 import requests
 
 from assistant.config import (
-    JARVIS_SYSTEM_PROMPT,
     OLLAMA_CHAT_URL,
     OLLAMA_MODEL_NAME,
     OLLAMA_TAGS_URL,
     OLLAMA_TIMEOUT_SECONDS,
+    get_system_prompt,
 )
 
 
@@ -31,7 +31,7 @@ def ask_llm(user_message: str, history: list[dict]) -> str:
     messages = [
         {
             "role": "system",
-            "content": JARVIS_SYSTEM_PROMPT,
+            "content": get_system_prompt(),
         }
     ]
 
@@ -39,7 +39,7 @@ def ask_llm(user_message: str, history: list[dict]) -> str:
         role = item.get("role")
         message = item.get("message")
 
-        if role in {"user", "assistant"} and message:
+        if role in {"user", "assistant", "system"} and message:
             messages.append(
                 {
                     "role": role,
