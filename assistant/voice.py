@@ -1,11 +1,12 @@
 import logging
 
 import pyttsx3
-import specch_recognition as sr
+import speech_recognition as sr
 
 logger = logging.getLogger(__name__)
 _engine = None
 recognizer = sr.Recognizer()
+WAKE_WORD = "hey jarvis"
 
 
 def _get_engine():
@@ -37,8 +38,25 @@ def listen() -> str:
     except OSError:
         return "Microphone is not available."
     try:
-        return recognizer.recognize_whisper(audio, model="base")
+        return recognizer.recognize_whisper(audio, model="base")  # type: ignore[attr-defined]
     except sr.UnknownValueError:
         return ""
     except sr.RequestError:
         return "Speech recognition service is unavailable."
+
+
+def wait_for_wake_word() -> None:
+    print(f"Listening for wake word '{WAKE_WORD}'...")
+    while True:
+        try:
+            with sr.Microphone() as source:
+                recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
+            text = recognizer.recognize_whisper(audio, model="tiny").lower()  # type: ignore[attr-defined]
+            if WAKE_WORD in text:
+                print("Wake word detected.")
+                return
+        except sr.WaitTimeoutError:
+            continue
+        except Exception:
+            continue

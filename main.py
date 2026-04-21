@@ -1,8 +1,21 @@
+import logging
+
 from assistant.brain import route_command
 from assistant.errors import normalize_response, safe_execute
 from assistant.history import add_message
+from assistant.llm import is_ollama_available
 from assistant.safety import is_blocked, requires_confirmation
-from assistant.voice import listen, speak
+from assistant.voice import listen, speak, wait_for_wake_word
+
+_file_handler = logging.FileHandler("jarvis.log", encoding="utf-8")
+_file_handler.setLevel(logging.DEBUG)
+_file_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+)
+_console_handler = logging.StreamHandler()
+_console_handler.setLevel(logging.WARNING)
+_console_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+logging.basicConfig(level=logging.DEBUG, handlers=[_file_handler, _console_handler])
 
 VOICE_ERROR_MESSAGES = [
     "Microphone is not available.",
@@ -20,6 +33,9 @@ def get_user_input(mode: str, failed_listens: int) -> tuple[str, str, int]:
             speak("Switching to voice mode.")
             return "", "voice", 0
         return user_input, mode, 0
+    wait_for_wake_word()
+    speak("Yes?")
+    print("Jarvis: Yes?")
     user_input = listen()
 
     if user_input in VOICE_ERROR_MESSAGES:
@@ -50,6 +66,10 @@ def confirm_action(prompt: str, mode: str) -> bool:
 
 def main():
     print("Jarvis is online.")
+    if not is_ollama_available():
+        print(
+            "Jarvis: Warning: Ollama is not running or the model is not loaded. LLM responses will be unavailable."
+        )
     print("Type 'voice' anytime in text mode to switch back to voice mode.")
     while True:
         mode = input("Choose mode (text/voice): ").strip().lower()
@@ -92,7 +112,7 @@ def main():
         if should_save:
             add_message("user", user_input)
             add_message("assistant", response)
-            print(f"Jarvis: {response}")
+        print(f"Jarvis: {response}")
         if mode == "voice":
             speak(response)
 

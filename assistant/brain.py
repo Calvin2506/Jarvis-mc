@@ -1,15 +1,32 @@
+import re
 from collections.abc import Callable
 
 from assistant.commands import (
+    calculate,
+    change_persona,
+    copy_to_clipboard,
     create_note,
+    delete_note,
+    get_battery,
     get_name,
+    get_weather,
+    list_notes,
     open_app,
     open_website,
+    read_clipboard,
+    read_note,
+    read_note_aloud,
     repeat_text,
+    run_code,
     save_name,
     say_hello,
     search_topic,
+    set_brightness,
+    set_reminder,
+    set_volume,
     show_history,
+    summarize_note,
+    take_screenshot,
     tell_date,
     tell_time,
 )
@@ -17,12 +34,16 @@ from assistant.history import get_recent_history
 from assistant.llm import ask_llm
 from assistant.validation import (
     no_validation,
+    validate_expression,
     validate_name,
     validate_note,
+    validate_note_identifier,
     validate_open_app,
     validate_open_website,
     validate_search_query,
 )
+
+_reminder_re = re.compile(r"remind(?:\s+me)?\s+in\s+(.+?)\s+to\s+(.+)", re.IGNORECASE)
 
 
 def make_command(
@@ -103,8 +124,92 @@ def route_command(command: str) -> dict:
     if lowered_command == "what is my name":
         return make_command("get_name", lambda: get_name())
 
+    if lowered_command == "create note" or lowered_command.startswith("create note "):
+        note_text = cleaned_command[4:].strip()
+        return make_command(
+            "create_note",
+            lambda: create_note(note_text),
+            validator=lambda: validate_note(note_text),
+            confirm_message="Do you want me to save this note?",
+        )
+
     if lowered_command == "show history":
         return make_command("show_history", lambda: show_history())
+
+    if lowered_command == "list notes":
+        return make_command("list_notes", lambda: list_notes())
+
+    if lowered_command == "read note" or lowered_command.startswith("read note "):
+        identifier = cleaned_command[10:].strip()
+        if len(lowered_command) > 10:
+            identifier = cleaned_command[10:].strip()
+        else:
+            identifier = ""
+        return make_command("read_note_aloud", lambda: read_note_aloud(identifier))
+
+    if lowered_command == "delete note" or lowered_command.startswith("delete note "):
+        identifier = cleaned_command[11:].strip()
+        return make_command(
+            "delete_note",
+            lambda: delete_note(identifier),
+            validator=lambda: validate_note_identifier(identifier),
+            confirm_message=f"Do you want me to delete note '{identifier}'?",
+        )
+    reminder_match = _reminder_re.match(cleaned_command)
+    if reminder_match:
+        duration = reminder_match.group(1).strip()
+        message = reminder_match.group(2).strip()
+        return make_command("set_reminder", lambda: set_reminder(duration, message))
+
+    if lowered_command.startswith("calculate") or lowered_command.startswith("calc "):
+        expr = cleaned_command.split(" ", 1)[1].strip()
+        return make_command(
+            "calculate",
+            lambda: calculate(expr),
+            validator=lambda: validate_expression(expr),
+        )
+    if "weather" in lowered_command:
+        location = ""
+        if "in" in lowered_command:
+            location = cleaned_command.split(" in ", 1)[1].strip()
+        elif lowered_command.startswith("weather"):
+            location = cleaned_command[8:].strip()
+        return make_command("get_weather", lambda: get_weather(location))
+
+    if lowered_command == "mute":
+        return make_command("set_volume", lambda: set_volume("mute"))
+
+    if lowered_command == "unmute":
+        return make_command("set_volume", lambda: set_volume("unmute"))
+
+    if lowered_command.startswith("set volume ") or lowered_command.startswith(
+        "volume "
+    ):
+        level = cleaned_command.split()[-1]
+        return make_command("set_volume", lambda: set_volume(level))
+    if "battery" in lowered_command:
+        return make_command("get_battery", lambda: get_battery())
+
+    if "brightness" in lowered_command:
+        if any(w in lowered_command for w in {"increase", "up", "higher", "brighter"}):
+            direction = "increase"
+        else:
+            direction = "decrease"
+        return make_command("set_brightness", lambda: set_brightness(direction))
+    if lowered_command == "summarize note" or lowered_command.startswith(
+        "summarize note "
+    ):
+        identifier = cleaned_command[14:].strip()
+        return make_command("summarize_note", lambda: summarize_note(identifier))
+
+    if lowered_command.startswith("change persona ") or lowered_command.startswith(
+        "persona"
+    ):
+        prefix = (
+            "set persona" if lowered_command.startswith("set persona") else "persona"
+        )
+        persona = lowered_command[len(prefix) :].strip()
+        return make_command("set_persona", lambda: change_persona(persona))
 
     history = get_recent_history()
 
