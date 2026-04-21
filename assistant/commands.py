@@ -14,7 +14,7 @@ from simpleeval import simple_eval
 
 from assistant.config import PERSONAS, set_persona
 from assistant.history import get_recent_history
-from assistant.llm import ask_llm
+from assistant.llm import ask_llm, is_ollama_available
 from assistant.memory import recall, remember
 
 NOTES_DIR = Path("notes")
@@ -405,6 +405,126 @@ def change_persona(persona: str) -> str:
         return f"Switched to {persona} mode."
     available = ", ".join(PERSONAS.keys())
     return f"Unknown persona '{persona}'. Available: {available}."
+
+
+def _run_applescript(script: str) -> str:
+    result = subprocess.run(
+        ["osascript", "-e", script],
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def _get_music_app() -> str | None:
+    for app in ("Spotify", "Music", "YT Music"):
+        result = subprocess.run(
+            [
+                "osascript",
+                "-e",
+                f'tell application "System Events" to (name of processes) contains "{app}"',
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if "true" in result.stdout.lower():
+            return app
+    return None
+
+
+def music_control(action: str) -> str:
+    app = _get_music_app()
+    if not app:
+        return "No music app is running.Open Spotify or Youtube Music or Apple Music first."
+    action = action.strip().lower()
+    if action in {"play", "resume"}:
+        _run_applescript(f'tell application "{app}" to play')
+        return f"Playing music on {app}."
+    elif action in {"pause", "stop"}:
+        _run_applescript(f'tell application "{app}" to pause')
+        return "Music paused."
+    elif action in {"next", "skip"}:
+        _run_applescript(f'tell application "{app}" to next track')
+        return "Skipped to next track."
+    elif action == "previous":
+        _run_applescript(f'tell application "{app}" to previous track')
+        return "Going back to previous track."
+    elif action == "current":
+        name = _run_applescript(
+            f'tell application "{app}" to get name of current track'
+        )
+        artist = _run_applescript(
+            f'tell application "{app}" to get artist of current track'
+        )
+        if name:
+            return f"Currently playing: {name} by {artist}."
+        else:
+            return "No track is currently playing."
+    else:
+        return f"Unknown music action '{action}'. Available: play, resume, pause, stop."
+
+
+_dictation_active = False
+
+
+def start_dictation() -> str:
+    global _dictation_active
+    _dictation_active = True
+    return "Dictation mode on. Say 'stop dictation' to exit."
+
+
+def stop_dictation() -> str:
+    global _dictation_active
+    _dictation_active = False
+    return "Dictation mode off."
+
+
+def is_dictation_active() -> bool:
+    return _dictation_active
+
+
+def type_text_to_app(text: str) -> str:
+    try:
+        pyperclip.copy(text)
+        subprocess.run(
+            [
+                "osascript",
+                "-e",
+                'tell application "System Events" to keystroke "v" using command down',
+            ],
+            check=True,
+        )
+        return f"Typed: {text}"
+    except Exception:
+        return "Could not type text into the active app."
+
+
+def daily_briefing() -> str:
+    parts = []
+    now = datetime.now()
+    parts.append(
+        f"Good morning! Today is {now.strftime('%A, %B %d, %Y')} "
+        f"and the time is {now.strftime('%I:%M %p')}."
+    )
+    weather = get_weather("")
+    if weather and "could not" not in weather:
+        parts.append(weather)
+    NOTES_DIR.mkdir(exist_ok=True)
+    note_count = len(list(NOTES_DIR.glob("*.txt")))
+    if note_count > 0:
+        label = "note" if note_count == 1 else "notes"
+        parts.append(f"You have {note_count} saved {label}.")
+
+    if is_ollama_available():
+        try:
+            quote = ask_llm(
+                "Give me one short motivational sentence to start the day. Maximum 15 words.",
+                [],
+            )
+            parts.append(quote)
+        except Exception:
+            pass
+    return " ".join(parts)
 
 
 def unknown_command() -> str:

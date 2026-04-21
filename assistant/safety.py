@@ -27,6 +27,9 @@ COMMAND_POLICIES = {
     "set_brightness": SAFE,
     "summarize_note": SAFE,
     "change_persona": SAFE,
+    "music_control": SAFE,
+    "start_dictation": SAFE,
+    "daily_briefing": SAFE,
 }
 
 

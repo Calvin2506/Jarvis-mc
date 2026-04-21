@@ -4,20 +4,18 @@ from collections.abc import Callable
 from assistant.commands import (
     calculate,
     change_persona,
-    copy_to_clipboard,
     create_note,
+    daily_briefing,
     delete_note,
     get_battery,
     get_name,
     get_weather,
     list_notes,
+    music_control,
     open_app,
     open_website,
-    read_clipboard,
-    read_note,
     read_note_aloud,
     repeat_text,
-    run_code,
     save_name,
     say_hello,
     search_topic,
@@ -25,8 +23,9 @@ from assistant.commands import (
     set_reminder,
     set_volume,
     show_history,
+    start_dictation,
+    stop_dictation,
     summarize_note,
-    take_screenshot,
     tell_date,
     tell_time,
 )
@@ -210,6 +209,41 @@ def route_command(command: str) -> dict:
         )
         persona = lowered_command[len(prefix) :].strip()
         return make_command("set_persona", lambda: change_persona(persona))
+    BRIEFING_TRIGGERS = {
+        "good morning",
+        "daily briefing",
+        "briefing",
+        "daily summary",
+        "morning summary",
+    }
+    if lowered_command in BRIEFING_TRIGGERS:
+        return make_command("daily_briefing", lambda: daily_briefing())
+    if (
+        "music" in lowered_command
+        or "song" in lowered_command
+        or "track" in lowered_command
+        or "now playing" in lowered_command
+        or lowered_command in {"play", "pause", "skip", "resume"}
+    ):
+        if any(w in lowered_command for w in {"next", "skip"}):
+            action = "next"
+        elif "previous" in lowered_command or "back" in lowered_command:
+            action = "previous"
+        elif "pause" in lowered_command or "stop music" in lowered_command:
+            action = "pause"
+        elif "play" in lowered_command or "resume" or "play music" in lowered_command:
+            action = "play"
+        elif any(w in lowered_command for w in {"current", "what", "now playing"}):
+            action = "current"
+        else:
+            action = lowered_command
+        return make_command("music_control", lambda: music_control(action))
+
+    if "start dication" in lowered_command or lowered_command == "dictation on":
+        return make_command("start_dictation", lambda: start_dictation())
+
+    if "stop dictation" in lowered_command or lowered_command == "dictation off":
+        return make_command("stop_dictation", lambda: stop_dictation())
 
     history = get_recent_history()
 

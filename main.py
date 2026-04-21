@@ -1,6 +1,7 @@
 import logging
 
 from assistant.brain import route_command
+from assistant.commands import is_dictation_active, stop_dictation, type_text_to_app
 from assistant.errors import normalize_response, safe_execute
 from assistant.history import add_message
 from assistant.llm import is_ollama_available
@@ -80,6 +81,18 @@ def main():
     while True:
         user_input, mode, failed_listens = get_user_input(mode, failed_listens)
         if not user_input:
+            continue
+        if is_dictation_active():
+            if "stop dictation" in user_input.lower():
+                response = stop_dictation()
+                print(f"Jarvis: {response}")
+                if mode == "voice":
+                    speak(response)
+            else:
+                response = type_text_to_app(user_input)
+                print(f"Jarvis: {response}")
+                if mode == "voice":
+                    speak("Typed.")
             continue
         if user_input.lower() == "exit":
             response = "Jarvis is shutting down."
