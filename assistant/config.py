@@ -10,6 +10,11 @@ OLLAMA_TAGS_URL = f"{OLLAMA_BASE_URL}/api/tags"
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
 OLLAMA_TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "60"))
 
+_mic_index = os.getenv("MICROPHONE_DEVICE_INDEX")
+MICROPHONE_DEVICE_INDEX: int | None = (
+    int(_mic_index) if _mic_index is not None else None
+)
+
 JARVIS_SYSTEM_PROMPT = """
 You are Jarvis, a local desktop AI assistant running on the user's Mac.
 

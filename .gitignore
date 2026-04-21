@@ -19,7 +19,6 @@ env/
 
 # Local secrets
 .env
-.env.example
 
 # Jarvis runtime data
 memory.json
