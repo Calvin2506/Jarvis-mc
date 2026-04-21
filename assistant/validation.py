@@ -24,5 +24,13 @@ def validate_name(name: str) -> str | None:
     return validate_non_empty(name, "Name")
 
 
+def validate_note_identifier(identifier: str) -> str | None:
+    return validate_non_empty(identifier, "Note number or name")
+
+
 def no_validation() -> str | None:
     return None
+
+
+def validate_expression(expression: str) -> str | None:
+    return validate_non_empty(expression, "Expression")
