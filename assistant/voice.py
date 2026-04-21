@@ -35,12 +35,12 @@ def listen() -> str:
     try:
         with sr.Microphone(device_index=MICROPHONE_DEVICE_INDEX) as source:
             print("Listening...")
-            recognizer.adjust_for_ambient_noise(source, duration=1)
+            recognizer.adjust_for_ambient_noise(source, duration=0.3)
             audio = recognizer.listen(source)
     except OSError:
         return "Microphone is not available."
     try:
-        return recognizer.recognize_whisper(audio, model="base", language="english")  # type: ignore[attr-defined]
+        return recognizer.recognize_whisper(audio, model="base", language="english")  # type: ignore[attr-defined]  # noqa: E501
     except sr.UnknownValueError:
         return ""
     except sr.RequestError:
@@ -54,10 +54,10 @@ def wait_for_wake_word() -> None:
             with sr.Microphone(device_index=MICROPHONE_DEVICE_INDEX) as source:
                 recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
-            text = recognizer.recognize_whisper(
+            text = recognizer.recognize_whisper(  # type: ignore[attr-defined]
                 audio, model="tiny", language="english"
-            ).lower()  # type: ignore[attr-defined]
-            if WAKE_WORD in text:
+            ).lower()
+            if "jarvis" in text:
                 print("Wake word detected.")
                 return
         except sr.WaitTimeoutError:

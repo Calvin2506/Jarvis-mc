@@ -1,4 +1,5 @@
 import logging
+import time
 
 from assistant.brain import route_command
 from assistant.commands import is_dictation_active, stop_dictation, type_text_to_app
@@ -37,6 +38,7 @@ def get_user_input(mode: str, failed_listens: int) -> tuple[str, str, int]:
     wait_for_wake_word()
     speak("Yes?")
     print("Jarvis: Yes?")
+    time.sleep(0.5)
     user_input = listen()
 
     if user_input in VOICE_ERROR_MESSAGES:
