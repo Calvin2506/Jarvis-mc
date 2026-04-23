@@ -70,10 +70,11 @@ def listen() -> str:
     try:
         with sr.Microphone(device_index=_get_best_microphone()) as source:
             print("Listening...")
-            recognizer.adjust_for_ambient_noise(source, duration=0.3)
-            audio = recognizer.listen(source)
+            audio = recognizer.listen(source, timeout=8, phrase_time_limit=10)
     except OSError:
         return "Microphone is not available."
+    except sr.WaitTimeoutError:
+        return ""
     try:
         return recognizer.recognize_whisper(audio, model="base", language="english")  # type: ignore[attr-defined]  # noqa: E501
     except sr.UnknownValueError:
