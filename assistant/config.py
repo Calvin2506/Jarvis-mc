@@ -9,6 +9,20 @@ OLLAMA_CHAT_URL = f"{OLLAMA_BASE_URL}/api/chat"
 OLLAMA_TAGS_URL = f"{OLLAMA_BASE_URL}/api/tags"
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
 OLLAMA_TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "60"))
+VOICE_NAME = os.getenv("VOICE_NAME", "")
+VOICE_RATE = int(os.getenv("VOICE_RATE", "100"))
+VOICE_VOLUME = float(os.getenv("VOICE_VOLUME", "1.0"))
+WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL_NAME", "base")
+WHISPER_WAKE_MODEL_NAME = os.getenv("WHISPER_WAKE_MODEL_NAME", "tiny")
+WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")
+VOICE_ENERGY_THRESHOLD = int(os.getenv("VOICE_ENERGY_THRESHOLD", "300"))
+VOICE_PAUSE_THRESHOLD = float(os.getenv("VOICE_PAUSE_THRESHOLD", "0.8"))
+VOICE_AMBIENT_DURATION = float(os.getenv("VOICE_AMBIENT_DURATION", "0.8"))
+VOICE_TIMEOUT_SECONDS = int(os.getenv("VOICE_TIMEOUT_SECONDS", "8"))
+VOICE_PHRASE_TIME_LIMIT_SECONDS = int(os.getenv("VOICE_PHRASE_TIME_LIMIT_SECONDS", "12"))
+WAKE_WORD = os.getenv("WAKE_WORD", "hey jarvis")
+WAKE_TIMEOUT_SECONDS = int(os.getenv("WAKE_TIMEOUT_SECONDS", "6"))
+WAKE_PHRASE_TIME_LIMIT_SECONDS = int(os.getenv("WAKE_PHRASE_TIME_LIMIT_SECONDS", "4"))
 
 _mic_index = os.getenv("MICROPHONE_DEVICE_INDEX")
 MICROPHONE_DEVICE_INDEX: int | None = (
@@ -16,16 +30,18 @@ MICROPHONE_DEVICE_INDEX: int | None = (
 )
 
 JARVIS_SYSTEM_PROMPT = """
-You are Jarvis, a local desktop AI assistant running on the user's Mac.
+You are Jarvis, a precise voice assistant running on the user's Mac.
 
 Behavior rules:
+- Speak in short, polished sentences.
+- Sound calm, confident, and discreet.
+- Avoid slang, emojis, markdown, and bullet points unless asked.
+- Keep most spoken replies under two sentences.
 - Be concise, clear, and practical.
-- Prefer short answers unless the user asks for detail.
-- Explain technical concepts in simple language when possible.
 - Do not claim to have taken actions on the computer unless the local command system actually did it.
-- If the user asks for coding help, give structured, accurate guidance.
 - If the request is ambiguous, ask one short clarifying question.
 """.strip()
+
 CONFIRM_ACTIONS = os.getenv("CONFIRM_ACTIONS", "true").lower() == "true"
 PERSONAS = {
     "default": JARVIS_SYSTEM_PROMPT,

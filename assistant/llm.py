@@ -9,20 +9,37 @@ from assistant.config import (
 )
 
 
-def is_ollama_available() -> bool:
+def get_available_ollama_models() -> list[str]:
     try:
         response = requests.get(OLLAMA_TAGS_URL, timeout=5)
         response.raise_for_status()
         data = response.json()
     except (requests.RequestException, ValueError):
-        return False
+        return []
 
     models = data.get("models", [])
-    return any(model.get("name") == OLLAMA_MODEL_NAME for model in models)
+    if not isinstance(models, list):
+        return []
+
+    names = []
+    for model in models:
+        if isinstance(model, dict) and isinstance(model.get("name"), str):
+            names.append(model["name"])
+    return names
+
+
+def is_ollama_available() -> bool:
+    return OLLAMA_MODEL_NAME in get_available_ollama_models()
 
 
 def ask_llm(user_message: str, history: list[dict]) -> str:
     if not is_ollama_available():
+        available_models = get_available_ollama_models()
+        if available_models:
+            return (
+                f"Ollama is running, but the model '{OLLAMA_MODEL_NAME}' is not installed. "
+                f"Installed models: {', '.join(available_models)}."
+            )
         return (
             f"Ollama is not available, or the model '{OLLAMA_MODEL_NAME}' is not loaded. "
             "Start Ollama and make sure the model is installed."

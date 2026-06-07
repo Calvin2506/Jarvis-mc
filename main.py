@@ -1,13 +1,21 @@
 import logging
+import re
 import time
 
 from assistant.brain import route_command
 from assistant.commands import is_dictation_active, stop_dictation, type_text_to_app
 from assistant.errors import normalize_response, safe_execute
 from assistant.history import add_message
-from assistant.llm import is_ollama_available
+from assistant.config import OLLAMA_MODEL_NAME
+from assistant.llm import get_available_ollama_models, is_ollama_available
 from assistant.safety import is_blocked, requires_confirmation
-from assistant.voice import listen, speak, wait_for_wake_word
+from assistant.voice import (
+    debug_list_microphones,
+    debug_list_voices,
+    listen,
+    speak,
+    wait_for_wake_word,
+)
 
 _file_handler = logging.FileHandler("jarvis.log", encoding="utf-8")
 _file_handler.setLevel(logging.DEBUG)
@@ -27,6 +35,13 @@ VOICE_ERROR_MESSAGES = [
 MAX_VOICE_FAILURES = 3
 
 
+def _normalize_spoken_command(user_input: str) -> str:
+    cleaned = user_input.strip()
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r"[.!?,:;]+$", "", cleaned)
+    return cleaned
+
+
 def get_user_input(mode: str, failed_listens: int) -> tuple[str, str, int]:
     if mode != "voice":
         user_input = input("You: ").strip()
@@ -34,10 +49,16 @@ def get_user_input(mode: str, failed_listens: int) -> tuple[str, str, int]:
             print("Jarvis: Switching to voice mode.")
             speak("Switching to voice mode.")
             return "", "voice", 0
+        if user_input.lower() in {"debug voices", "list voices"}:
+            debug_list_voices()
+            return "", mode, 0
+        if user_input.lower() in {"debug microphones", "list microphones"}:
+            debug_list_microphones()
+            return "", mode, 0
         return user_input, mode, 0
     wait_for_wake_word()
-    speak("Yes?")
-    print("Jarvis: Yes?")
+    speak("At your service.")
+    print("Jarvis: At your service.")
     time.sleep(0.5)
     user_input = listen()
 
@@ -56,13 +77,18 @@ def get_user_input(mode: str, failed_listens: int) -> tuple[str, str, int]:
             speak("Too many failed attempts. Switching to text input.")
             return "", "text", 0
         return "", mode, failed_listens
-    print(f"You: {user_input}")
-    return user_input.strip(), mode, 0
+    normalized_input = _normalize_spoken_command(user_input)
+    print(f"You: {normalized_input}")
+    return normalized_input, mode, 0
 
 
 def confirm_action(prompt: str, mode: str) -> bool:
     if mode == "voice":
         speak(prompt)
+        print(f"Jarvis: {prompt} (say yes or no)")
+        answer = _normalize_spoken_command(listen()).lower()
+        print(f"You: {answer}")
+        return answer in {"yes", "y", "yeah", "yep", "sure"}
     answer = input(f"Jarvis: {prompt} (yes/no): ").strip().lower()
     return answer in {"yes", "y"}
 
@@ -70,9 +96,16 @@ def confirm_action(prompt: str, mode: str) -> bool:
 def main():
     print("Jarvis is online.")
     if not is_ollama_available():
-        print(
-            "Jarvis: Warning: Ollama is not running or the model is not loaded. LLM responses will be unavailable."
-        )
+        available_models = get_available_ollama_models()
+        if available_models:
+            print(
+                f"Jarvis: Warning: Ollama is running, but '{OLLAMA_MODEL_NAME}' is not installed. "
+                f"Installed models: {', '.join(available_models)}."
+            )
+        else:
+            print(
+                "Jarvis: Warning: Ollama is not running or no models are installed. LLM responses will be unavailable."
+            )
     print("Type 'voice' anytime in text mode to switch back to voice mode.")
     while True:
         mode = input("Choose mode (text/voice): ").strip().lower()
