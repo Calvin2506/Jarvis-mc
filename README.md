@@ -10,6 +10,7 @@ A privacy-first, local desktop AI assistant for macOS — inspired by Iron Man's
 - Switch between **text** and **voice** mode at startup
 - Wake word detection — say **"Hey Jarvis"** to activate in voice mode
 - Auto-detects microphone (adapts when headphones connect/disconnect)
+- Configurable microphone index, wake word, listening timeouts, and Whisper models
 - Local speech-to-text via **OpenAI Whisper** (no cloud, no data sent)
 - Text-to-speech responses via **pyttsx3**
 
@@ -17,6 +18,7 @@ A privacy-first, local desktop AI assistant for macOS — inspired by Iron Man's
 - Powered by **Ollama** running locally — fully offline
 - Falls back to Ollama for any unrecognised command
 - Configurable model via `.env` (default: `qwen3:8b`)
+- Shows installed Ollama models when the configured model is missing
 - Persona switching — formal, casual, concise modes
 - Multi-turn memory summarisation when history limit is reached
 
@@ -47,7 +49,7 @@ A privacy-first, local desktop AI assistant for macOS — inspired by Iron Man's
 - Configurable confirmation toggle via `.env`
 
 ### 🛠️ Developer
-- 24 unit tests with `pytest`
+- 28 unit tests with `pytest`
 - Logging to `jarvis.log`
 - Modular architecture — easy to add new commands
 
@@ -112,12 +114,28 @@ OLLAMA_MODEL_NAME=qwen3:8b
 OLLAMA_TIMEOUT_SECONDS=60
 CONFIRM_ACTIONS=true
 MICROPHONE_DEVICE_INDEX=1
+VOICE_NAME=
+VOICE_RATE=100
+VOICE_VOLUME=1.0
+WHISPER_MODEL_NAME=base
+WHISPER_WAKE_MODEL_NAME=tiny
+WHISPER_LANGUAGE=en
+VOICE_ENERGY_THRESHOLD=300
+VOICE_PAUSE_THRESHOLD=0.8
+VOICE_AMBIENT_DURATION=0.8
+VOICE_TIMEOUT_SECONDS=8
+VOICE_PHRASE_TIME_LIMIT_SECONDS=12
+WAKE_WORD=hey jarvis
+WAKE_TIMEOUT_SECONDS=6
+WAKE_PHRASE_TIME_LIMIT_SECONDS=4
 ```
 
 > To find your microphone index, run:
 > ```bash
 > python3 -c "import speech_recognition as sr; print(list(enumerate(sr.Microphone.list_microphone_names())))"
 > ```
+>
+> You can also start Jarvis in text mode and type `list microphones` or `debug microphones`.
 
 ### 7. Grant microphone permission
 
@@ -137,10 +155,13 @@ python3 main.py
 | Command | Description |
 |---|---|
 | `hello` / `hi` / `hey` | Greeting |
+| `voice` | Switch from text mode to voice mode |
 | `what time is it` | Current time |
 | `what is the date` | Current date |
 | `repeat <text>` | Repeat back any text |
 | `show history` | Show conversation history |
+| `list microphones` / `debug microphones` | Show available microphone device indexes |
+| `list voices` / `debug voices` | Show available text-to-speech voices |
 | `exit` | Shut down Jarvis |
 
 ### Notes
@@ -206,7 +227,8 @@ jarvis-ai/
 ├── tests/
 │   ├── test_brain.py        # Routing tests
 │   ├── test_commands.py     # Command unit tests
-│   └── test_validation.py   # Validator tests
+│   ├── test_validation.py   # Validator tests
+│   └── test_voice.py        # Voice helper tests
 ├── notes/                   # Saved note files
 ├── screenshots/             # Saved screenshots
 ├── .env.example             # Environment variable template
@@ -221,6 +243,50 @@ jarvis-ai/
 ```bash
 python3 -m pytest tests/ -v
 ```
+
+---
+
+## 🔧 Troubleshooting
+
+### Ollama model is unavailable
+
+If Jarvis says the configured model is missing, check which models Ollama can see:
+
+```bash
+ollama list
+```
+
+Then either pull the default model:
+
+```bash
+ollama pull qwen3:8b
+```
+
+Or update `OLLAMA_MODEL_NAME` in `.env` to one of your installed models. Make sure Ollama is running before starting Jarvis.
+
+### Microphone is not detected
+
+If Jarvis cannot hear you, first confirm macOS microphone access for the terminal app you use to run Python:
+
+**System Settings → Privacy & Security → Microphone**
+
+Then run Jarvis in text mode and type:
+
+```text
+list microphones
+```
+
+Set `MICROPHONE_DEVICE_INDEX` in `.env` to a real input device index. If the list is empty, PortAudio/PyAudio cannot see your input devices yet; restart the terminal after granting permission and confirm that a physical or headset microphone is connected.
+
+### Speech recognition is inaccurate
+
+Try a larger Whisper model for command transcription:
+
+```env
+WHISPER_MODEL_NAME=small
+```
+
+Keep `WHISPER_WAKE_MODEL_NAME=tiny` for faster wake-word detection unless wake-word recognition is also unreliable.
 
 ---
 
